@@ -1,0 +1,4 @@
+Host intr_bz.bitbucket.org
+ HostName bitbucket.org
+ StrictHostKeyChecking no
+ IdentityFile ~/.ssh/docker_api_sdk_openssh
