@@ -123,27 +123,50 @@ services:
         image: redis:8-alpine
         container_name: redis-master
         restart: always
+        networks:
+            - redis-network
         command: redis-server --appendonly yes
         ports:
             - 6379:6379
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
 
     redis-slave:
         image: redis:8-alpine
         container_name: redis-slave
         restart: always
+        networks:
+            - redis-network
         command: redis-server --slaveof redis-master 6379 --appendonly yes
         depends_on:
-            - redis-master
+            redis-master:
+                condition: service_healthy
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
 
     redis-sentinel:
         image: redis:8-alpine
         container_name: redis-sentinel
         restart: always
-        command: redis-sentinel /etc/redis/sentinel.conf
+        networks:
+            - redis-network
+        command: sh -c "sleep 10 && redis-sentinel /etc/redis/sentinel.conf"
         volumes:
             - ./docker/redis/sentinel.conf:/etc/redis/sentinel.conf
         depends_on:
-            - redis-master
-            - redis-slave
+            redis-master:
+                condition: service_healthy
+            redis-slave:
+                condition: service_healthy
         ports:
             - 26379:26379
+
+networks:
+    redis-network:
+        driver: bridge
