@@ -156,9 +156,17 @@ services:
         restart: always
         networks:
             - redis-network
-        command: sh -c "sleep 10 && redis-sentinel /etc/redis/sentinel.conf"
-        volumes:
-            - ./docker/redis/sentinel.conf:/etc/redis/sentinel.conf
+        command: >
+            sh -c "
+            echo 'port 26379' > /tmp/sentinel.conf &&
+            echo 'sentinel monitor mymaster redis-master 6379 2' >> /tmp/sentinel.conf &&
+            echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+            echo 'sentinel failover-timeout mymaster 60000' >> /tmp/sentinel.conf &&
+            echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+            echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+            echo 'sentinel announce-hostnames yes' >> /tmp/sentinel.conf &&
+            redis-sentinel /tmp/sentinel.conf
+            "
         depends_on:
             redis-master:
                 condition: service_healthy
